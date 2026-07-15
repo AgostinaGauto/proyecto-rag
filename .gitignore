@@ -1,0 +1,20 @@
+# Entornos virtuales
+venv/
+.venv/
+env/
+
+# Caché de Python
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Variables de entorno / Secretos (¡Crucial!)
+.env
+
+# Almacenamiento local de base de datos vectorial (no queremos subir datos locales)
+vectorstore/
+
+# Archivos temporales del sistema operativo
+.DS_Store
+Thumbs.db
