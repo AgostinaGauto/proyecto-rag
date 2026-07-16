@@ -1,0 +1,21 @@
+# Framework principal para IA y RAG
+langchain==0.2.11
+langchain-community==0.2.10
+
+# Integración con Hugging Face
+langchain-huggingface==0.0.3
+huggingface_hub==0.24.0
+
+# Lectores de Documentos
+pypdf==4.3.0
+pandas==2.2.2
+
+# Base de datos vectorial (Versión CPU para evitar instalar CUDA de NVIDIA localmente)
+faiss-cpu==1.8.0.post1
+
+# API y Servidor Web
+fastapi==0.111.1
+uvicorn==0.30.3
+
+# Utilidades adicionales
+python-dotenv==1.0.1
