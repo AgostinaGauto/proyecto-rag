@@ -1,93 +1,104 @@
 """
-Módulo RAG - Componente Vectorial: Responsable de la creación, almacenamiento
-y recuperación semántica utilizando FAISS.
-Sigue las buenas prácticas de diseño modular y PEP8.
+Módulo RAG - Componente Vectorial y Generación Local con LCEL:
+Responsable de la recuperación semántica y respuesta usando Ollama de forma nativa.
+Limpio de dependencias heredadas conflictivas.
 """
 
 import os
-from typing import List
 from langchain_community.vectorstores import FAISS
-from langchain_core.documents import Document
+from langchain_ollama import OllamaLLM
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.runnables import RunnablePassthrough
+
 from app.loader import cargar_pdf, cargar_csv, dividir_documentos
 from app.embeddings import obtener_modelo_embeddings
+import os
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
-# Ruta estándar de persistencia definida en la arquitectura del proyecto
+from langchain_community.vectorstores import FAISS
+
+
+# Ruta estándar de persistencia
 RUTA_VECTORSTORE = "vectorstore"
 
 
 def crear_o_cargar_vectorstore() -> FAISS:
-    """
-    Busca una base de datos vectorial FAISS existente en el disco.
-    Si existe, la carga; si no, procesa los documentos desde cero,
-    genera los embeddings y la guarda para futuros usos.
-
-    Returns:
-        FAISS: Instancia de la base de datos vectorial lista para buscar.
-    """
-    # Inicializamos el motor de embeddings local
+    """Busca una base de datos vectorial FAISS existente o crea una nueva."""
     constructor_embeddings = obtener_modelo_embeddings()
 
-    # Escenario A: La base de datos ya fue creada previamente
     if os.path.exists(os.path.join(RUTA_VECTORSTORE, "index.faiss")):
         print(f"[INFO] Detectada base de datos local. Cargando FAISS desde '{RUTA_VECTORSTORE}'...")
-        # 'allow_dangerous_deserialization=True' es necesario para cargar archivos FAISS locales mediante pickle
-        db_vectorial = FAISS.load_local(
-            RUTA_VECTORSTORE, 
-            constructor_embeddings, 
-            allow_dangerous_deserialization=True
-        )
-        print("[INFO] Base de datos vectorial cargada exitosamente.")
-        return db_vectorial
+        return FAISS.load_local(RUTA_VECTORSTORE, constructor_embeddings, allow_dangerous_deserialization=True)
 
-    # Escenario B: Primera ejecución, la base de datos no existe
     print("[INFO] No se encontró una base de datos vectorial previa. Creando una nueva...")
-    
-    # 1. Definimos las rutas de nuestros archivos creados en la Fase 3
     ruta_pdf = os.path.join("data", "pdf", "politicas_empresa.pdf")
     ruta_csv = os.path.join("data", "csv", "productos.csv")
     
-    # 2. Cargamos los documentos usando nuestro módulo loader
     documentos_cargados = []
-    if os.path.exists(ruta_pdf):
-        documentos_cargados.extend(cargar_pdf(ruta_pdf))
-    if os.path.exists(ruta_csv):
-        documentos_cargados.extend(cargar_csv(ruta_csv))
+    if os.path.exists(ruta_pdf): documentos_cargados.extend(cargar_pdf(ruta_pdf))
+    if os.path.exists(ruta_csv): documentos_cargados.extend(cargar_csv(ruta_csv))
         
     if not documentos_cargados:
-        raise ValueError("No se encontraron archivos válidos en las carpetas data/pdf/ o data/csv/ para indexar.")
+        raise ValueError("No se encontraron archivos válidos en data/pdf/ o data/csv/.")
 
-    # 3. Fragmentamos los documentos en chunks inteligentes
     chunks = dividir_documentos(documentos_cargados, chunk_size=500, chunk_overlap=50)
-
-    # 4. Construimos el índice FAISS pasando los textos y el modelo de embeddings
-    print("[INFO] Indexando fragmentos en FAISS (esto generará los embeddings numéricos)...")
     db_vectorial = FAISS.from_documents(chunks, constructor_embeddings)
-    
-    # 5. Guardamos en el disco local para que la próxima vez sea instantáneo
     db_vectorial.save_local(RUTA_VECTORSTORE)
-    print(f"[INFO] Base de datos guardada exitosamente en la carpeta '{RUTA_VECTORSTORE}'.")
-    
     return db_vectorial
 
 
-# Bloque de prueba local para verificar la búsqueda semántica
-if __name__ == "__main__":
+def formatear_documentos(docs) -> str:
+    """Une el contenido de los fragmentos recuperados en un único bloque de texto."""
+    return "\n\n".join(doc.page_content for doc in docs)
+
+
+def ejecutar_sistema_rag(pregunta: str):
+    """Ejecuta el pipeline RAG completo usando la arquitectura pura LCEL de LangChain."""
+    print(f"\n[SISTEMA RAG] Pregunta: {pregunta}")
+    
     try:
-        # Inicializamos o cargamos la base de datos
+        # 1. Obtener base de datos de conocimiento y configurar el recuperador
         db = crear_o_cargar_vectorstore()
+        retriever = db.as_retriever(search_kwargs={"k": 2})
         
-        # Realizamos una prueba de búsqueda semántica (Similitud)
-        pregunta_prueba = "¿Cuánto dinero dan para equipar la oficina en casa?"
-        print(f"\n[TEST] Ejecutando búsqueda semántica para: '{pregunta_prueba}'")
+        # 2. Configurar el LLM local con Ollama
+        print("[INFO] Conectando con el LLM local (Ollama: llama3.2)...")
+        llm = OllamaLLM(model="llama3.2", temperature=0.0)
         
-        # k=2 le indica a FAISS que nos traiga los 2 fragmentos con mayor coincidencia de significado
-        resultados = db.similarity_search(pregunta_prueba, k=2)
+        # 3. Definir el prompt del sistema
+        prompt = ChatPromptTemplate.from_template("""
+        Eres un asistente corporativo preciso. Responde la siguiente pregunta basándote únicamente en el contexto provisto.
+        Si no sabes la respuesta o no está en el contexto, di textualmente que no dispones de esa información.
+
+        Contexto:
+        {context}
+
+        Pregunta: {question}
+
+        Respuesta en español:""")
         
-        print(f"\n[RESULTADOS ENCONTRADOS: {len(resultados)}]")
-        for i, doc in enumerate(resultados):
-            print(f"\n--- Fragmento Coincidente #{i+1} (Origen: {doc.metadata['source']}) ---")
-            print(doc.page_content)
-            print("-" * 40)
-            
+        # 4. Construir la cadena RAG con LCEL de forma explícita
+        print("[INFO] Procesando consulta con el modelo de lenguaje local...")
+        cadena_rag = (
+            {"context": retriever | formatear_documentos, "question": RunnablePassthrough()}
+            | prompt
+            | llm
+            | StrOutputParser()
+        )
+        
+        # 5. Ejecutar la consulta
+        respuesta_final = cadena_rag.invoke(pregunta)
+        
+        print("\n" + "="*50)
+        print("[RESPUESTA DE LA IA LOCAL]:")
+        print(respuesta_final)
+        print("="*50 + "\n")
+        
     except Exception as e:
-        print(f"[ERROR]: Ocurrió un fallo en el módulo RAG Vectorial: {e}")
+        print(f"[ERROR EN RAG]: {e}")
+
+
+if __name__ == "__main__":
+    consulta = "¿Cuánto presupuesto tengo para equipar mi oficina en casa y qué días debo ir a trabajar físicamente?"
+    ejecutar_sistema_rag(consulta)

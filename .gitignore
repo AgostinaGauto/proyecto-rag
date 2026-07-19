@@ -9,7 +9,7 @@ env/
 *.pyo
 *.pyd
 
-# Variables de entorno / Secretos (¡Crucial!)
+# Variables de entorno / Secretos
 .env
 
 # Almacenamiento local de base de datos vectorial (no queremos subir datos locales)
