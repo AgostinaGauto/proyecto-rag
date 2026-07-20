@@ -1,7 +1,7 @@
 """
 Módulo RAG - Componente Vectorial y Generación Local con LCEL:
 Responsable de la recuperación semántica y respuesta usando Ollama de forma nativa.
-Limpio de dependencias heredadas conflictivas.
+Limpio de dependencias heredadas conflictivas y optimizado para la Fase 11.
 """
 
 import os
@@ -13,11 +13,9 @@ from langchain_core.runnables import RunnablePassthrough
 
 from app.loader import cargar_pdf, cargar_csv, dividir_documentos
 from app.embeddings import obtener_modelo_embeddings
-import os
+
+# Desactivar advertencia de OpenMP en Windows
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
-
-from langchain_community.vectorstores import FAISS
-
 
 # Ruta estándar de persistencia
 RUTA_VECTORSTORE = "vectorstore"
@@ -42,7 +40,8 @@ def crear_o_cargar_vectorstore() -> FAISS:
     if not documentos_cargados:
         raise ValueError("No se encontraron archivos válidos en data/pdf/ o data/csv/.")
 
-    chunks = dividir_documentos(documentos_cargados, chunk_size=500, chunk_overlap=50)
+    # Optimización Fase 11: Reducción de chunk_size a 300 para mayor precisión semántica
+    chunks = dividir_documentos(documentos_cargados, chunk_size=300, chunk_overlap=50)
     db_vectorial = FAISS.from_documents(chunks, constructor_embeddings)
     db_vectorial.save_local(RUTA_VECTORSTORE)
     return db_vectorial
@@ -58,9 +57,12 @@ def ejecutar_sistema_rag(pregunta: str):
     print(f"\n[SISTEMA RAG] Pregunta: {pregunta}")
     
     try:
-        # 1. Obtener base de datos de conocimiento y configurar el recuperador
+        # 1. Obtener base de datos de conocimiento y configurar el recuperador con MMR (Fase 11)
         db = crear_o_cargar_vectorstore()
-        retriever = db.as_retriever(search_kwargs={"k": 2})
+        retriever = db.as_retriever(
+            search_type="mmr",
+            search_kwargs={"k": 4, "fetch_k": 8}
+        )
         
         # 2. Configurar el LLM local con Ollama
         print("[INFO] Conectando con el LLM local (Ollama: llama3.2)...")
@@ -68,8 +70,12 @@ def ejecutar_sistema_rag(pregunta: str):
         
         # 3. Definir el prompt del sistema
         prompt = ChatPromptTemplate.from_template("""
-        Eres un asistente corporativo preciso. Responde la siguiente pregunta basándote únicamente en el contexto provisto.
-        Si no sabes la respuesta o no está en el contexto, di textualmente que no dispones de esa información.
+        Eres un asistente corporativo preciso y literal. Responde la siguiente pregunta basándote ÚNICAMENTE en el contexto provisto.
+        
+        Reglas estrictas:
+        1. Sé directo y aférrate exactamente a la información del texto.
+        2. NO asumas, deduzcas ni inventes detalles de tiempo si el texto no los especifica explícitamente.
+        3. Si la respuesta no está en el contexto, di exactamente que no dispones de esa información.
 
         Contexto:
         {context}

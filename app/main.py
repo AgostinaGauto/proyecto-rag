@@ -1,6 +1,7 @@
 """
 Interfaz de Usuario con Streamlit para el Sistema RAG Corporativo.
-Conectado al pipeline local de Ollama con sintaxis moderna de LangChain y ChromaDB.
+Conectado al pipeline local de Ollama con sintaxis moderna de LangChain y FAISS.
+Optimizado para Fase 11: Búsqueda diversificada con MMR.
 """
 
 import os
@@ -33,12 +34,18 @@ st.caption("Consulta las políticas y productos de la empresa en tiempo real (10
 # Cargar la base de datos vectorial de forma eficiente (usando caché de Streamlit)
 @st.cache_resource(show_spinner=False)
 def obtener_cadena_rag():
-    """Inicializa la base de datos y la cadena RAG con el prompt estricto y literal."""
+    """Inicializa la base de datos y la cadena RAG con la estrategia MMR y el prompt estricto."""
     db = crear_o_cargar_vectorstore()
-    retriever = db.as_retriever(search_kwargs={"k": 2})
+    
+    # Optimización Fase 11: Búsqueda por Relevancia Mínima (MMR)
+    retriever = db.as_retriever(
+        search_type="mmr",
+        search_kwargs={"k": 4, "fetch_k": 8}
+    )
+    
     llm = OllamaLLM(model="llama3.2", temperature=0.0)
     
-    # Prompt estricto para evitar deducciones erróneas (como confundir días/semanas/meses)
+    # Prompt estricto para evitar deducciones erróneas
     prompt = ChatPromptTemplate.from_template("""
     Eres un asistente corporativo preciso y literal. Responde la siguiente pregunta basándote ÚNICAMENTE en el contexto provisto.
     
