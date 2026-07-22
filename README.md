@@ -34,3 +34,12 @@ El flujo de procesamiento de la información y generación de respuestas sigue l
 * **Base de Datos Vectorial:** FAISS
 * **Procesamiento de Documentos:** PyPDF, Pandas
 * **Despliegue & Contenerización:** Docker, Render / OCI (Oracle Cloud Infrastructure)
+
+Ejemplos de Uso del Agente
+Preguntas que el agente puede responder:
+"¿Cuál es el presupuesto asignado para equipar la oficina en casa?"
+
+"¿Cuáles son los productos disponibles en el catálogo y sus especificaciones?"
+
+"¿Qué pasos debo seguir para solicitar un reembolso?"
+
