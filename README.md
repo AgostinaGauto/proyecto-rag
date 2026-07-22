@@ -35,11 +35,80 @@ El flujo de procesamiento de la información y generación de respuestas sigue l
 * **Procesamiento de Documentos:** PyPDF, Pandas
 * **Despliegue & Contenerización:** Docker, Render / OCI (Oracle Cloud Infrastructure)
 
-Ejemplos de Uso del Agente
+---
+
+## Ejemplos de Uso del Agente
 Preguntas que el agente puede responder:
 "¿Cuál es el presupuesto asignado para equipar la oficina en casa?"
 
 "¿Cuáles son los productos disponibles en el catálogo y sus especificaciones?"
 
 "¿Qué pasos debo seguir para solicitar un reembolso?"
+
+## Ejemplo de Entrada / Respuesta Generada:
+Consulta (POST /query):
+
+{
+  "pregunta": "¿Cuál es el presupuesto para equipar la oficina en casa?"
+}
+
+{
+  "respuesta": "El presupuesto máximo asignado para el equipamiento de la oficina en casa es de $500 USD por empleado, destinable a sillas ergonómicas, monitores y periféricos, según la Política de Trabajo Remoto.",
+  "fuentes": [
+    {
+      "archivo": "Politica_Trabajo_Remoto.pdf",
+      "contenido": "Sección 3.2: Cada empleado cuenta con un fondo único de $500 USD para la compra de equipamiento ergonómico de oficina en casa..."
+    }
+  ]
+}
+
+---
+
+## Evidencia del Deploy
+La aplicación se encuentra desplegada en un entorno de nube contenerizado y accesible públicamente:
+
+🌐 Enlace público de la API: https://proyecto-rag.onrender.com
+
+📖 Documentación interactiva (Swagger UI): https://proyecto-rag.onrender.com/docs
+
+---
+
+## Instrucciones para Ejecutar el Proyecto
+
+* ** 1_ Ejecución Local
+Clonar el repositorio: git clone [https://github.com/AgostinaGauto/proyecto-rag.git](https://github.com/AgostinaGauto/proyecto-rag.git)
+cd proyecto-rag
+
+* ** 2_ Crear y activar entorno virtual:
+  python -m venv venv
+# En Windows:
+venv\Scripts\activate
+# En Linux/Mac:
+source venv/bin/activate
+
+* ** 3_ Instalar dependencias: pip install -r requirements.txt
+
+* ** $_ Configurar variables de entorno: GROQ_API_KEY=tu_api_key_aqui
+
+* ** 5_ Iniciar el servidor: uvicorn app.api:app --reload --port 8000
+
+Accede a la documentación en http://localhost:8000/docs.
+
+---
+## Ejecución mediante Docker
+ * ** 1_ Construir la imagen: docker build -t challenge-alura-agente .
+
+* ** 2_ Ejecutar el contenedor: docker run -p 8000:8000 -e GROQ_API_KEY="tu_api_key_aqui" challenge-alura-agente
+
+---
+
+### Comandos git para guardarlo y subirlo:
+
+```bash
+git add README.md
+git commit -m "docs: guardar archivo README completo"
+git push origin main
+  
+
+
 
