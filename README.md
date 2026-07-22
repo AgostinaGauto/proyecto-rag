@@ -75,7 +75,7 @@ La aplicación se encuentra desplegada en un entorno de nube contenerizado y acc
 
 ## Instrucciones para Ejecutar el Proyecto
 
-* ** 1_ Ejecución Local
+*  1_ Ejecución Local
 Clonar el repositorio: git clone [https://github.com/AgostinaGauto/proyecto-rag.git](https://github.com/AgostinaGauto/proyecto-rag.git)
 cd proyecto-rag
 
@@ -88,7 +88,7 @@ source venv/bin/activate
 
 * ** 3_ Instalar dependencias: pip install -r requirements.txt
 
-* ** $_ Configurar variables de entorno: GROQ_API_KEY=tu_api_key_aqui
+* ** 4_ Configurar variables de entorno: GROQ_API_KEY=tu_api_key_aqui
 
 * ** 5_ Iniciar el servidor: uvicorn app.api:app --reload --port 8000
 
