@@ -1,6 +1,6 @@
 """
 Módulo RAG - Componente Vectorial y Generación con LCEL:
-Soporta generación híbrida: Groq en la nube (Render) y Ollama local.
+Generación en la nube utilizando Groq.
 """
 
 import os
@@ -21,20 +21,18 @@ RUTA_VECTORSTORE = "vectorstore"
 
 
 def obtener_llm():
-    """Retorna ChatGroq si la API Key está presente; si no, usa Ollama local."""
+    """Retorna la instancia de ChatGroq utilizando la API Key guardada en las variables de entorno."""
     groq_api_key = os.getenv("GROQ_API_KEY")
     
-    if groq_api_key:
-        print("[INFO] Conectando con LLM en la nube (Groq: llama-3.1-8b-instant)...")
-        return ChatGroq(
-            model_name="llama-3.1-8b-instant",
-            temperature=0.0,
-            groq_api_key=groq_api_key
-        )
-    else:
-        print("[INFO] Conectando con LLM local (Ollama: llama3.2)...")
-        from langchain_ollama import OllamaLLM
-        return OllamaLLM(model="llama3.2", temperature=0.0)
+    if not groq_api_key:
+        raise ValueError("[ERROR] No se encontró la variable de entorno GROQ_API_KEY.")
+        
+    print("[INFO] Conectando con LLM en la nube (Groq: llama-3.1-8b-instant)...")
+    return ChatGroq(
+        model_name="llama-3.1-8b-instant",
+        temperature=0.0,
+        groq_api_key=groq_api_key
+    )
 
 
 def crear_o_cargar_vectorstore() -> FAISS:
@@ -50,8 +48,10 @@ def crear_o_cargar_vectorstore() -> FAISS:
     ruta_csv = os.path.join("data", "csv", "productos.csv")
     
     documentos_cargados = []
-    if os.path.exists(ruta_pdf): documentos_cargados.extend(cargar_pdf(ruta_pdf))
-    if os.path.exists(ruta_csv): documentos_cargados.extend(cargar_csv(ruta_csv))
+    if os.path.exists(ruta_pdf): 
+        documentos_cargados.extend(cargar_pdf(ruta_pdf))
+    if os.path.exists(ruta_csv): 
+        documentos_cargados.extend(cargar_csv(ruta_csv))
         
     if not documentos_cargados:
         raise ValueError("No se encontraron archivos válidos en data/pdf/ o data/csv/.")
@@ -79,7 +79,7 @@ def ejecutar_sistema_rag(pregunta: str):
             search_kwargs={"k": 4, "fetch_k": 8}
         )
         
-        # 2. Configurar el LLM (Groq en la nube u Ollama local)
+        # 2. Configurar el LLM (Groq)
         llm = obtener_llm()
         
         # 3. Definir el prompt del sistema
