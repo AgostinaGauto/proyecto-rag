@@ -1,17 +1,16 @@
 """
-Módulo de Embeddings Local: Configura el modelo de vectores utilizando Ollama.
-Elimina dependencias externas conflictivas y permite ejecución 100% local.
+Módulo de Embeddings:
+Utiliza HuggingFace en lugar de Ollama para que funcione tanto en local como en la nube (Render).
 """
 
-from langchain_ollama import OllamaEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 
 
-def obtener_modelo_embeddings() -> OllamaEmbeddings:
-    """
-    Inicializa y retorna el constructor de embeddings local de Ollama.
-    
-    Returns:
-        OllamaEmbeddings: Instancia lista para vectorizar documentos.
-    """
-    print("[INFO] Inicializando modelo de embeddings local: nomic-embed-text...")
-    return OllamaEmbeddings(model="nomic-embed-text")
+def obtener_modelo_embeddings():
+    """Retorna un modelo de embeddings ligero de HuggingFace optimizado para CPU."""
+    print("[INFO] Cargando modelo de embeddings HuggingFace (all-MiniLM-L6-v2)...")
+    return HuggingFaceEmbeddings(
+        model_name="sentence-transformers/all-MiniLM-L6-v2",
+        model_kwargs={"device": "cpu"},
+        encode_kwargs={"normalize_embeddings": True},
+    )
