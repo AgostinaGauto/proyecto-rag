@@ -1,20 +1,18 @@
 # Entornos virtuales
-venv/
 .venv/
+venv/
 env/
 
 # Caché de Python
-**/__pycache__/
+__pycache__/
 *.pyc
-*.pyo
-*.pyd
 
-# Variables de entorno / Secretos
-.env
-
-# Almacenamiento local de base de datos vectorial (no queremos subir datos locales)
+# Datos vectoriales y archivos temporales (se regeneran localmente)
 vectorstore/
+*.log
 
-# Archivos temporales del sistema operativo
+# Docker/IDE
 .DS_Store
-Thumbs.db
+.vscode/
+.idea/.env
+.env
