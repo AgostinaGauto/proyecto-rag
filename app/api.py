@@ -1,6 +1,6 @@
 """
 API REST con FastAPI para el Sistema RAG Corporativo.
-Expone un endpoint para realizar consultas al pipeline de Ollama + FAISS.
+Expone un endpoint para realizar consultas al pipeline de Groq + FAISS.
 Fase 12: Integración de API REST.
 """
 
@@ -9,6 +9,9 @@ import sys
 from typing import List
 from pydantic import BaseModel, Field
 from fastapi import FastAPI, HTTPException
+
+# Integración con Groq en lugar de Ollama
+from langchain_groq import ChatGroq
 
 # Agregar la raíz del proyecto al path de Python
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -21,13 +24,13 @@ from langchain_core.runnables import RunnablePassthrough, RunnableParallel
 # Inicializar FastAPI
 app = FastAPI(
     title="API RAG Corporativo",
-    description="Endpoint REST para consultar políticas y productos usando Ollama y FAISS.",
+    description="Endpoint REST para consultar políticas y productos usando Groq y FAISS.",
     version="1.0.0"
 )
 
 # Modelos de Pydantic para la validación de entrada/salida
 class ConsultaRequest(BaseModel):
-    pregunta: str = Field(..., example="¿Cuál es el presupuesto para la oficina en casa?")
+    pregunta: str = Field(..., json_schema_extra={"example": "¿Cuál es el presupuesto para la oficina en casa?"})
 
 class FuenteResponse(BaseModel):
     archivo: str
@@ -44,12 +47,18 @@ def obtener_cadena_rag():
         search_type="mmr",
         search_kwargs={"k": 4, "fetch_k": 8}
     )
-    llm = OllamaLLM(model="llama3.2", temperature=0.0)
+    
+    # Instanciar el modelo LLM mediante la API de Groq
+    llm = ChatGroq(
+        groq_api_key=os.getenv("GROQ_API_KEY"),
+        model_name="llama-3.1-8b-instant",
+        temperature=0.0
+    )
     
     prompt = ChatPromptTemplate.from_template("""
     Eres un asistente corporativo preciso y literal. Responde la siguiente pregunta basándote ÚNICAMENTE en el contexto provisto.
     
-    Reglas estrictas:
+    Reglas strictly:
     1. Sé directo y aférrate exactamente a la información del texto.
     2. NO asumas, deduzcas ni inventes detalles de tiempo si el texto no los especifica explícitamente.
     3. Si la respuesta no está en el contexto, di exactamente que no dispones de esa información.
