@@ -75,30 +75,30 @@ La aplicación se encuentra desplegada en un entorno de nube contenerizado y acc
 
 ## Instrucciones para Ejecutar el Proyecto
 
-*  1_ Ejecución Local
+* 1_ Ejecución Local
 Clonar el repositorio: git clone [https://github.com/AgostinaGauto/proyecto-rag.git](https://github.com/AgostinaGauto/proyecto-rag.git)
 cd proyecto-rag
 
-* ** 2_ Crear y activar entorno virtual:
+* 2_ Crear y activar entorno virtual:
   python -m venv venv
 # En Windows:
 venv\Scripts\activate
 # En Linux/Mac:
 source venv/bin/activate
 
-* ** 3_ Instalar dependencias: pip install -r requirements.txt
+* 3_ Instalar dependencias: pip install -r requirements.txt
 
-* ** 4_ Configurar variables de entorno: GROQ_API_KEY=tu_api_key_aqui
+* 4_ Configurar variables de entorno: GROQ_API_KEY=tu_api_key_aqui
 
-* ** 5_ Iniciar el servidor: uvicorn app.api:app --reload --port 8000
+* 5_ Iniciar el servidor: uvicorn app.api:app --reload --port 8000
 
 Accede a la documentación en http://localhost:8000/docs.
 
 ---
 ## Ejecución mediante Docker
- * ** 1_ Construir la imagen: docker build -t challenge-alura-agente .
+ * 1_ Construir la imagen: docker build -t challenge-alura-agente .
 
-* ** 2_ Ejecutar el contenedor: docker run -p 8000:8000 -e GROQ_API_KEY="tu_api_key_aqui" challenge-alura-agente
+* 2_ Ejecutar el contenedor: docker run -p 8000:8000 -e GROQ_API_KEY="tu_api_key_aqui" challenge-alura-agente
 
 ---
 
