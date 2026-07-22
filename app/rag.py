@@ -1,15 +1,14 @@
 """
-Módulo RAG - Componente Vectorial y Generación Local con LCEL:
-Responsable de la recuperación semántica y respuesta usando Ollama de forma nativa.
-Limpio de dependencias heredadas conflictivas y optimizado para la Fase 11.
+Módulo RAG - Componente Vectorial y Generación con LCEL:
+Soporta generación híbrida: Groq en la nube (Render) y Ollama local.
 """
 
 import os
 from langchain_community.vectorstores import FAISS
-from langchain_ollama import OllamaLLM
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough
+from langchain_groq import ChatGroq
 
 from app.loader import cargar_pdf, cargar_csv, dividir_documentos
 from app.embeddings import obtener_modelo_embeddings
@@ -19,6 +18,23 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 # Ruta estándar de persistencia
 RUTA_VECTORSTORE = "vectorstore"
+
+
+def obtener_llm():
+    """Retorna ChatGroq si la API Key está presente; si no, usa Ollama local."""
+    groq_api_key = os.getenv("GROQ_API_KEY")
+    
+    if groq_api_key:
+        print("[INFO] Conectando con LLM en la nube (Groq: llama-3.1-8b-instant)...")
+        return ChatGroq(
+            model_name="llama-3.1-8b-instant",
+            temperature=0.0,
+            groq_api_key=groq_api_key
+        )
+    else:
+        print("[INFO] Conectando con LLM local (Ollama: llama3.2)...")
+        from langchain_ollama import OllamaLLM
+        return OllamaLLM(model="llama3.2", temperature=0.0)
 
 
 def crear_o_cargar_vectorstore() -> FAISS:
@@ -40,7 +56,6 @@ def crear_o_cargar_vectorstore() -> FAISS:
     if not documentos_cargados:
         raise ValueError("No se encontraron archivos válidos en data/pdf/ o data/csv/.")
 
-    # Optimización Fase 11: Reducción de chunk_size a 300 para mayor precisión semántica
     chunks = dividir_documentos(documentos_cargados, chunk_size=300, chunk_overlap=50)
     db_vectorial = FAISS.from_documents(chunks, constructor_embeddings)
     db_vectorial.save_local(RUTA_VECTORSTORE)
@@ -57,16 +72,15 @@ def ejecutar_sistema_rag(pregunta: str):
     print(f"\n[SISTEMA RAG] Pregunta: {pregunta}")
     
     try:
-        # 1. Obtener base de datos de conocimiento y configurar el recuperador con MMR (Fase 11)
+        # 1. Obtener base de datos de conocimiento y configurar el recuperador con MMR
         db = crear_o_cargar_vectorstore()
         retriever = db.as_retriever(
             search_type="mmr",
             search_kwargs={"k": 4, "fetch_k": 8}
         )
         
-        # 2. Configurar el LLM local con Ollama
-        print("[INFO] Conectando con el LLM local (Ollama: llama3.2)...")
-        llm = OllamaLLM(model="llama3.2", temperature=0.0)
+        # 2. Configurar el LLM (Groq en la nube u Ollama local)
+        llm = obtener_llm()
         
         # 3. Definir el prompt del sistema
         prompt = ChatPromptTemplate.from_template("""
@@ -84,8 +98,7 @@ def ejecutar_sistema_rag(pregunta: str):
 
         Respuesta en español:""")
         
-        # 4. Construir la cadena RAG con LCEL de forma explícita
-        print("[INFO] Procesando consulta con el modelo de lenguaje local...")
+        # 4. Construir la cadena RAG con LCEL
         cadena_rag = (
             {"context": retriever | formatear_documentos, "question": RunnablePassthrough()}
             | prompt
@@ -97,12 +110,15 @@ def ejecutar_sistema_rag(pregunta: str):
         respuesta_final = cadena_rag.invoke(pregunta)
         
         print("\n" + "="*50)
-        print("[RESPUESTA DE LA IA LOCAL]:")
+        print("[RESPUESTA DE LA IA]:")
         print(respuesta_final)
         print("="*50 + "\n")
         
+        return respuesta_final
+        
     except Exception as e:
         print(f"[ERROR EN RAG]: {e}")
+        return f"Error al procesar la solicitud: {e}"
 
 
 if __name__ == "__main__":
