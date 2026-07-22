@@ -24,7 +24,7 @@ El flujo de procesamiento de la información y generación de respuestas sigue l
 
 ---
 
-## 🛠️ Tecnologías y Herramientas Utilizadas
+##  Tecnologías y Herramientas Utilizadas
 
 * **Lenguaje:** Python 3.10+
 * **Framework Web:** FastAPI + Uvicorn
